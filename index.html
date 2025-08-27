@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vitrine de Produtos</title>
+
+<a href="teste.html">gerenciador</a><p></p>
+
+
+<style>
+  body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f9fafb; }
+  header { background: #4f46e5; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+  header h1 { margin: 0; font-size: 20px; }
+  .cart-icon { position: relative; cursor: pointer; font-size: 20px; }
+  .cart-count { position: absolute; top: -8px; right: -10px; background: #ef4444; color: white; border-radius: 50%; padding: 2px 6px; font-size: 12px; }
+
+  main { padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px,1fr)); gap: 20px; }
+  .product-card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 15px; display: flex; flex-direction: column; transition: transform 0.2s; }
+  .product-card:hover { transform: translateY(-3px); }
+  .product-card img { width: 100%; height: 160px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; }
+  .product-card h3 { margin: 0; font-size: 18px; color: #111; }
+  .product-card p { font-size: 14px; color: #555; margin: 5px 0; }
+  .product-card button { margin-top: auto; background: #4f46e5; color: white; border: none; padding: 8px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+
+  /* Carrinho lateral */
+  .cart-panel { position: fixed; top: 0; right: -400px; width: 350px; height: 100%; background: white; box-shadow: -2px 0 8px rgba(0,0,0,0.1); transition: right 0.3s; display: flex; flex-direction: column; }
+  .cart-panel.open { right: 0; }
+  .cart-header { padding: 15px; background: #4f46e5; color: white; display: flex; justify-content: space-between; align-items: center; }
+  .cart-header h2 { margin: 0; font-size: 18px; }
+  .cart-items { flex: 1; overflow-y: auto; padding: 10px; }
+  .cart-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .cart-item-info { flex: 1; margin-left: 10px; }
+  .cart-item h4 { margin: 0; font-size: 14px; }
+  .cart-item p { margin: 0; font-size: 12px; color: #555; }
+  .cart-item button { background: #ef4444; border: none; color: white; border-radius: 6px; padding: 4px 6px; cursor: pointer; font-size: 12px; }
+  .cart-footer { padding: 15px; border-top: 1px solid #eee; }
+  .cart-footer .total { font-weight: bold; margin-bottom: 10px; }
+  .cart-footer button { width: 100%; background: #22c55e; border: none; color: white; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🛍️ Vitrine de Produtos</h1>
+  <div class="cart-icon" onclick="toggleCart()">🛒 <span class="cart-count" id="cartCount">0</span></div>
+</header>
+
+<main id="vitrine"></main>
+
+<!-- Carrinho lateral -->
+<div class="cart-panel" id="cartPanel">
+  <div class="cart-header">
+    <h2>Seu Carrinho</h2>
+    <button onclick="toggleCart()" style="background:none;border:none;color:white;font-size:18px;cursor:pointer;">✖</button>
+  </div>
+  <div class="cart-items" id="cartItems"></div>
+  <div class="cart-footer">
+    <div class="total" id="cartTotal">Total: R$ 0,00</div>
+    <button onclick="finalizarCompra()">Finalizar Compra</button>
+  </div>
+</div>
+
+<script>
+let products = JSON.parse(localStorage.getItem('products')) || [];
+let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+// Render vitrine
+function renderVitrine() {
+  const container = document.getElementById('vitrine');
+  container.innerHTML = '';
+  if(products.length === 0){ container.innerHTML='<p>Nenhum produto disponível.</p>'; return; }
+  products.forEach((p, idx) => {
+    const card = document.createElement('div');
+    card.className = 'product-card';
+    card.innerHTML = `
+      <img src="${p.imageData || ''}" alt="Imagem">
+      <h3>${p.title}</h3>
+      <p>Preço: R$ ${p.price.toFixed(2)}</p>
+      <p>Qtd disponível: ${p.quantity}</p>
+      <button onclick="addToCart(${idx})">Adicionar ao Carrinho</button>
+    `;
+    container.appendChild(card);
+  });
+}
+
+// Carrinho
+function toggleCart() {
+  document.getElementById('cartPanel').classList.toggle('open');
+}
+
+function addToCart(idx) {
+  const product = products[idx];
+  const item = cart.find(c => c.title === product.title);
+  if(item) { item.qty++; }
+  else cart.push({ title: product.title, price: product.price, qty: 1 });
+  saveCart();
+}
+
+function removeFromCart(index) {
+  cart.splice(index, 1);
+  saveCart();
+}
+
+function saveCart() {
+  localStorage.setItem('cart', JSON.stringify(cart));
+  renderCart();
+}
+
+function renderCart() {
+  const container = document.getElementById('cartItems');
+  const count = document.getElementById('cartCount');
+  const total = document.getElementById('cartTotal');
+  container.innerHTML = '';
+  let sum = 0;
+  cart.forEach((item, idx) => {
+    sum += item.price * item.qty;
+    const div = document.createElement('div');
+    div.className = 'cart-item';
+    div.innerHTML = `
+      <div class="cart-item-info">
+        <h4>${item.title}</h4>
+        <p>${item.qty}x R$ ${item.price.toFixed(2)}</p>
+      </div>
+      <button onclick="removeFromCart(${idx})">Remover</button>
+    `;
+    container.appendChild(div);
+  });
+  count.textContent = cart.reduce((a,i)=>a+i.qty,0);
+  total.textContent = 'Total: R$ ' + sum.toFixed(2);
+}
+
+// Finalizar compra via WhatsApp
+function finalizarCompra() {
+  if(cart.length === 0){ alert("Carrinho vazio!"); return; }
+  let msg = "🛍️ *Novo Pedido - Vitrine Online*%0A%0A📦 *Itens:*%0A";
+  cart.forEach(item => {
+    msg += `• ${item.qty}x ${item.title} — R$ ${item.price.toFixed(2)}%0A`;
+  });
+  let total = cart.reduce((a,i)=>a+i.price*i.qty,0);
+  msg += `%0A💵 *Total:* R$ ${total.toFixed(2)}%0A%0A📲 Aguardando confirmação 🙏`;
+  
+  const phone = "+5500000000000"; // Troque pelo seu número com DDI/DDD
+  window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
+}
+
+renderVitrine();
+renderCart();
+</script>
+</body>
+</html>
